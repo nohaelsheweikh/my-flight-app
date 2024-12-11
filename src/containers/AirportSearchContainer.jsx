@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getNearbyAirports, searchAirport } from '../services/api';
 import AirportSearchForm from '../components/flights/AirportSearchForm';
 import AirportResults from '../components/flights/AirportResults';
+import Notification from '../components/common/Notification';
 
 const AirportSearchContainer = ({ onSelectAirport }) => {
   // State to track loading status
@@ -12,6 +13,13 @@ const AirportSearchContainer = ({ onSelectAirport }) => {
 
   // State to store the user's search query
   const [query, setQuery] = useState('');
+
+  // State for managing notification
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'error',
+  });
 
   // useEffect to automatically fetch nearby airports on initial render
   useEffect(() => {
@@ -33,18 +41,30 @@ const AirportSearchContainer = ({ onSelectAirport }) => {
           },
           (error) => {
             // Handle error if geolocation access is denied or fails
-            console.error('Location access denied or error:', error);
+            setNotification({
+              open: true,
+              message: 'Location access denied or unavailable.',
+              severity: 'error',
+            });
             setLoading(false);
           }
         );
       } else {
         // Handle case where geolocation is not supported by the browser
-        console.error('Geolocation not supported');
+        setNotification({
+          open: true,
+          message: 'Geolocation not supported by your browser.',
+          severity: 'error',
+        });
         setLoading(false);
       }
     } catch (error) {
       // Handle errors during the API call
-      console.error('Error fetching nearby airports:', error);
+      setNotification({
+        open: true,
+        message: 'Error fetching nearby airports.',
+        severity: 'error',
+      });
       setLoading(false);
     }
   };
@@ -57,7 +77,11 @@ const AirportSearchContainer = ({ onSelectAirport }) => {
       setResults(response?.data || []); // Update results state with fetched data
     } catch (error) {
       // Handle errors during the API call
-      console.error('Error searching airports:', error);
+      setNotification({
+        open: true,
+        message: 'Error searching airports.',
+        severity: 'error',
+      });
       setResults([]); // Clear results if there's an error
     } finally {
       setLoading(false); // Stop loading
@@ -71,7 +95,11 @@ const AirportSearchContainer = ({ onSelectAirport }) => {
 
     // Validate if the selected airport has the necessary identifiers
     if (!relevantParams || !relevantParams.skyId || !relevantParams.entityId) {
-      alert('Selected airport does not have valid identifiers.');
+      setNotification({
+        open: true,
+        message: 'Selected airport does not have valid identifiers.',
+        severity: 'warning',
+      });
       return;
     }
 
@@ -97,11 +125,19 @@ const AirportSearchContainer = ({ onSelectAirport }) => {
       {loading ? (
         <p style={{ textAlign: 'center', marginTop: '20px' }}>Fetching nearby airports...</p>
       ) : (
-        <AirportResults 
+        <AirportResults
           results={results} // Pass the search results
           onSelectAirport={handleSelectAirport} // Function to handle airport selection
         />
       )}
+
+      {/* Notification Component */}
+      <Notification
+        open={notification.open}
+        message={notification.message}
+        severity={notification.severity}
+        onClose={() => setNotification({ ...notification, open: false })} // Close notification
+      />
     </div>
   );
 };
